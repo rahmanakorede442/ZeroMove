@@ -1,0 +1,27 @@
+id	
+member_id	
+first_name	
+last_name	
+middle_name	
+email	
+phone_no	
+password	
+gender	
+dob	
+membership_type	
+membership_type_status	
+oracle_no	
+letter_of_appointment	
+bvn	
+nin	
+email_verify_token	
+user_status	email_status	
+member_status	
+profile_status	
+shareholding_status	
+online_banking	
+withdrawal_waiver	
+last_login	
+remember_token	
+created_at	
+updated_at

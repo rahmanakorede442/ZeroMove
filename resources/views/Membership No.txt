@@ -1,0 +1,23 @@
+Membership No   
+Surame
+Othername
+Phone
+Email
+Employee No
+Status
+Gender
+Date of Birth
+Marital Status
+Profession
+Employer Address
+Grade Level
+Contact Address
+Email
+Phone
+Religion
+Next of Kin
+Kin Relationship
+Kin Address
+Kin Email
+Origin State
+LGA
