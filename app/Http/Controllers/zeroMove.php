@@ -13,7 +13,7 @@ class zeroMove extends Controller
         //     ['acct_type', 'monthly savings']
         //     ['posting_date']
         //     ])->get(); 
-        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2015-07-02 00:00:00' and '2016-07-02 00:00:00') order by posting_date asc"));
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2017-07-04 00:00:00' and '2018-07-04 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
 
@@ -413,7 +413,7 @@ class zeroMove extends Controller
                     } else{
                         $payment_method = $zero_tran->payment_channel;
                     }
-                    
+
                     if(DB::table('users')->where('id', $zero_tran->user_id)->doesntExist()){
                         continue;
                     }
