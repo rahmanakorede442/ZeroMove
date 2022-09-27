@@ -9,7 +9,11 @@ class zeroMove extends Controller
 {
     public function savings_transactions(){
 
-        $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'monthly savings')->limit(5)->get();
+        // $zero_trans = DB::table('zero_trans_tbl')->where([
+        //     ['acct_type', 'monthly savings']
+        //     ['posting_date']
+        //     ])->get(); 
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2015-07-02 00:00:00' and '2016-07-02 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
 
@@ -18,8 +22,14 @@ class zeroMove extends Controller
             //convert date from name to number
             $month = date('m',strtotime($zero_tran->month));
 
+            if($zero_tran->payment_channel == ''){
+                $payment_method = 'Paid';
+            } else{
+                $payment_method = $zero_tran->payment_channel;
+            }
+
             //get the last inserted_id which is the primary id of savings tbl
-            $savings_id = DB::table('savings')->insertGetId(['user_id' => $zero_tran->user_id, 'amount' => abs($zero_tran->amount), 'transaction_month' => $month, 'auto_status'=> 0, 'card_id'=> 0, 'start_date' => $zero_tran->date, 'created_at' => $date_time]);
+            $savings_id = DB::table('savings')->insertGetId(['user_id' => $zero_tran->user_id, 'amount' => abs($zero_tran->amount), 'transaction_month' => $month, 'auto_status'=> 0, 'card_id'=> 0, 'start_date' => $zero_tran->date, 'payment_method' => $payment_method, 'created_at' => $date_time]);
 
             if(((int)$zero_tran->amount > 0) || ($zero_tran->type == 'credit')){
                 $savings_category = 1;
@@ -36,7 +46,7 @@ class zeroMove extends Controller
             $entered_by = $this->get_entered_by($zero_tran->user_id);
                 
             //insert into the savings_transactions table
-            $savings_trans_insert = DB::table('savings_transactions')->insertGetId(['savings_id'=> $savings_id, 'user_id' => $zero_tran->user_id,'paystack_id' => 0, 'savings_type'=> 'self', 'savings_category' => $savings_category, 'status' => 'completed', 'amount' => abs($zero_tran->amount), 'date_time' => $zero_tran->date, 'transaction_by' => $entered_by, 'transaction_type' => $zero_tran->type, 'payment_method' => 'paid', 'created_at' => $date_time ]);
+            $savings_trans_insert = DB::table('savings_transactions')->insertGetId(['savings_id'=> $savings_id, 'user_id' => $zero_tran->user_id,'paystack_id' => 0, 'savings_type'=> 'self', 'savings_category' => $savings_category, 'status' => 'completed', 'amount' => abs($zero_tran->amount), 'date_time' => $zero_tran->date, 'transaction_by' => $entered_by, 'transaction_type' => $zero_tran->type, 'payment_method' => $payment_method, 'created_at' => $date_time ]);
                         
             //particular user on the savings_balances table
             $savings_bal_tbl = DB::table('savings_balances')->where('user_id', $zero_tran->user_id);
@@ -54,14 +64,14 @@ class zeroMove extends Controller
             }
 
             //insert into transactions table
-            $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount' => abs($zero_tran->amount), 'paystack_id' => 0, 'entry_date' => $zero_tran->date, 'transaction_id'=> $savings_trans_insert, 'transaction_category'=> $savings_category, 'transaction_type' => $zero_tran->type, 'created_at' => $date_time]);
+            $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount' => abs($zero_tran->amount), 'paystack_id' => 0, 'payment_method' => $payment_method, 'entry_date' => $zero_tran->date, 'transaction_id'=> $savings_trans_insert, 'transaction_category'=> $savings_category, 'transaction_type' => $zero_tran->type, 'created_at' => $date_time]);
 
             $last_id = DB::table('savings_acc_statement')->where('user_id', $zero_tran->user_id)->max('id');
             $last_balance = DB::table('savings_acc_statement')->where('id', $last_id)->value('balance');
             $acc_balance = $last_balance + $zero_tran->amount;
 
             //insert into savings account statement table
-            $acct_statement = DB::table('savings_acc_statement')->insert(['user_id'=> $zero_tran->user_id, 'description'=> $description, 'value_date' => $zero_tran->date, 'debit'=> $debit, 'credit'=> $credit, 'balance' => $acc_balance]);
+            $acct_statement = DB::table('savings_acc_statement')->insert(['user_id'=> $zero_tran->user_id, 'description'=> $description, 'channel'=> $payment_method,'value_date' => $zero_tran->date, 'debit'=> $debit, 'credit'=> $credit, 'balance' => $acc_balance]);
         }
         
         if($acct_statement){
@@ -75,16 +85,24 @@ class zeroMove extends Controller
 
     public function target_transactions(){
         
-        $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'target savings')->limit(5)->get();
+        // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'target savings')->limit(5)->get();
+
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'target savings' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+
         $date_time = date('Y-m-d h:i:s');
         $just_date = date('Y-m-d');
 
         foreach ($zero_trans as $zero_tran) {
+            $abs_amount = abs($zero_tran->amount);
+            $paystack_id = mt_rand(10000, 99999);
 
-           $target_id =  DB::table('targets')->insertGetId(['user_id' => $zero_tran->user_id, 'created_at' => $date_time, 'updated_at' => $date_time]);
-           $abs_amount = abs($zero_tran->amount);
-           $paystack_id = mt_rand(10000, 99999);
+            if($zero_tran->payment_channel == ''){
+                $payment_method = 'Bank';
+            } else{
+                $payment_method = $zero_tran->payment_channel;
+            }
 
+           $target_id =  DB::table('targets')->insertGetId(['user_id' => $zero_tran->user_id, 'payment_method'=>$payment_method, 'created_at' => $date_time, 'updated_at' => $date_time]);
            //Variables for deposit
            if($zero_tran->amount > 0 || $zero_tran->type == 'credit'){
             $trans_type = 'credit';
@@ -106,10 +124,10 @@ class zeroMove extends Controller
            $entered_by = $this->get_entered_by($zero_tran->user_id);
 
             //Insert into the target_transactions table and get the inserted id 
-            $target_trans_id = DB::table('target_transactions')->insertGetId(['targets_id'=> $target_id, 'user_id' => $zero_tran->user_id, 'date_time' => $zero_tran->date, 'targets_type' => $targets_type, 'amount' => $abs_amount, 'created_at' => $date_time, 'updated_at' => $date_time, 'transaction_by' => $entered_by, 'transaction_type' => $trans_type, 'target_category' => $target_category, 'status' => $status, 'paystack_id' => $paystack_id, 'payment_method' => 'Bank']);
+            $target_trans_id = DB::table('target_transactions')->insertGetId(['targets_id'=> $target_id, 'user_id' => $zero_tran->user_id, 'date_time' => $zero_tran->date, 'targets_type' => $targets_type, 'amount' => $abs_amount, 'created_at' => $date_time, 'updated_at' => $date_time, 'transaction_by' => $entered_by, 'transaction_type' => $trans_type, 'target_category' => $target_category, 'status' => $status, 'paystack_id' => $paystack_id, 'payment_method' => $payment_method]);
 
             //Insert into the transactions table
-            DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'entry_date' => $zero_tran->date, 'transaction_id' => $target_trans_id, 'status' => $status, 'transaction_category' => $target_category, 'transaction_type' => $trans_type, 'created_at' => $date_time]);
+            DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'entry_date' => $zero_tran->date, 'transaction_id' => $target_trans_id, 'status' => $status, 'transaction_category' => $target_category, 'payment_method'=> $payment_method, 'transaction_type' => $trans_type, 'created_at' => $date_time]);
 
         }
 
@@ -118,7 +136,10 @@ class zeroMove extends Controller
     }
 
     public function wallet_transactions(){
-        $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Wallet')->limit(5)->get();
+        // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Wallet')->limit(5)->get();
+
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Wallet' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+
         $date_time = date('Y-m-d h:i:s');
         $just_date = date('Y-m-d');
 
@@ -136,10 +157,16 @@ class zeroMove extends Controller
             $wallet_category = 53;
            }
 
-            $wallet_inserted_id = DB::table('wallets')->insertGetId(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'entry_date' => $zero_tran->date, 'enter_by' => $entered_by, 'wallet_type' => $trans_type, 'wallet_category' => $wallet_category, 'created_at' => $date_time, 'updated_at' => $date_time]);
+           if($zero_tran->payment_channel == ''){
+                $payment_method = 'Bank';
+            } else{
+                $payment_method = $zero_tran->payment_channel;
+            }
+
+            $wallet_inserted_id = DB::table('wallets')->insertGetId(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'entry_date' => $zero_tran->date, 'enter_by' => $entered_by, 'wallet_type' => $trans_type, 'wallet_category' => $wallet_category, 'payment_method' => $payment_method, 'created_at' => $date_time, 'updated_at' => $date_time]);
 
             //Insert into the transactions table
-            $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'entry_date' => $zero_tran->date, 'transaction_id' => $wallet_inserted_id, 'transaction_category' => $wallet_category, 'transaction_type' => $trans_type]);
+            $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount'=> $abs_amount, 'payment_method' => $payment_method, 'entry_date' => $zero_tran->date, 'transaction_id' => $wallet_inserted_id, 'transaction_category' => $wallet_category, 'transaction_type' => $trans_type]);
         }
         return response()->json(['status' => true, 'message' => 'insert successful']);      
 
@@ -147,7 +174,10 @@ class zeroMove extends Controller
     
         public function share_holding_transactions(){
             
-            $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'shares Capital')->limit(5)->get();
+            // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'shares Capital')->limit(5)->get();
+
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'shares Capital' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -156,13 +186,19 @@ class zeroMove extends Controller
                 $abs_amount = abs($zero_tran->amount);
                 $paystack_id = mt_rand(10000, 99999);
 
+                if($zero_tran->payment_channel == ''){
+                    $payment_method = 'Bank';
+                } else{
+                    $payment_method = $zero_tran->payment_channel;
+                }
+
                 $entered_by = $this->get_entered_by($zero_tran->user_id);
 
                 if(DB::table('share_holdings')->where([['user_id', '=', $zero_tran->user_id],['status', '=', 1]])->doesntExist()) {
                     // ...insert account for user
                     $user_id = $zero_tran->user_id;
                     $status = 1;
-                    $share_holding_insert = DB::table('share_holdings')->insert(['user_id' => $user_id, 'status' => $status, 'created_at' => $date_time, 'updated_at' => $date_time]);
+                    $share_holding_insert = DB::table('share_holdings')->insert(['user_id' => $user_id, 'status' => $status, 'created_at' => $date_time, 'payment_method'=> $payment_method,'updated_at' => $date_time]);
                 }
 
                 //get share_holding id
@@ -177,10 +213,10 @@ class zeroMove extends Controller
                 }
 
                 //insert into share holdings table
-                $share_transaction =  DB::table('shareholdings_transactions')->insertGetId(['share_holdings_id' => $share_id, 'user_id' => $zero_tran->user_id, 'shareholdings_type' => 'manual', 'amount' => $abs_amount, 'investment_amount' => 0, 'status' => 'completed', 'date_time' => $zero_tran->date, 'transaction_by' => $entered_by, 'paystack_id' => $paystack_id, 'transaction_type' => $trans_type, 'payment_method' => 'Bank', 'created_at' => $date_time]);
+                $share_transaction =  DB::table('shareholdings_transactions')->insertGetId(['share_holdings_id' => $share_id, 'user_id' => $zero_tran->user_id, 'shareholdings_type' => 'manual', 'amount' => $abs_amount, 'investment_amount' => 0, 'status' => 'completed', 'date_time' => $zero_tran->date, 'transaction_by' => $entered_by, 'paystack_id' => $paystack_id, 'transaction_type' => $trans_type, 'payment_method' => $payment_method, 'created_at' => $date_time]);
 
                 //Insert into the transactions table
-                $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount' => $abs_amount, 'entry_date' => $zero_tran->date, 'transaction_id' => $share_transaction, 'transaction_type' => $trans_type, 'transaction_category' => 3, 'created_at' => $date_time, 'updated_at' => $date_time]);
+                $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'amount' => $abs_amount, 'entry_date' => $zero_tran->date, 'payment_method'=>$payment_method,'transaction_id' => $share_transaction, 'transaction_type' => $trans_type, 'transaction_category' => 3, 'created_at' => $date_time, 'updated_at' => $date_time]);
                 
             }
 
@@ -189,7 +225,9 @@ class zeroMove extends Controller
         }
 
         public function procurement_repayment(){
-            $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Procurement')->limit(5)->get();
+            // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Procurement')->limit(5)->get();
+
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Procurement' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -198,6 +236,12 @@ class zeroMove extends Controller
                 $paystack_id = mt_rand(10000, 99999);
                 $abs_amount = abs($zero_tran->amount);
                 
+                if($zero_tran->payment_channel == ''){
+                    $payment_method = 'Bank';
+                } else{
+                    $payment_method = $zero_tran->payment_channel;
+                }
+
                 $date = explode('-' , $zero_tran->date);
                 $mnt = $date[1];
                 $yr = $date[0];
@@ -207,7 +251,6 @@ class zeroMove extends Controller
                 
                 //======hard coded data ==========
                 $description = $month .' ' . $yr . ' DEDUCTION';
-                $payment_method = 'Bank';
                 $frequency = 'Monthly';
                 $start_date = date('Y-m-d'); 
                 $app_no = 'ZIMC-'.$zero_tran->user_id;
@@ -217,7 +260,7 @@ class zeroMove extends Controller
                 //======hard coded data ==========
 
                 //insert into the procurement table
-                DB::table('procurement')->insert(['user_id'=> $zero_tran->user_id, 'app_no' => $app_no, 'status' => 11, 'frequency' => $frequency, 'item_size' => $item_size, 'card_id' => $card_id, 'created_at' => $date_time, 'updated_at' => $date_time]);
+                DB::table('procurement')->insert(['user_id'=> $zero_tran->user_id, 'app_no' => $app_no, 'status' => 11, 'frequency' => $frequency, 'payment_method'=> $payment_method, 'item_size' => $item_size, 'card_id' => $card_id, 'created_at' => $date_time, 'updated_at' => $date_time]);
 
                 //get the loan_id
                 $proc_id = DB::table('procurement')->where([['user_id', '=', $zero_tran->user_id], ['status', '=', 11]])->value('id');
@@ -235,7 +278,9 @@ class zeroMove extends Controller
 
         public function loan_repayment(){
 
-            $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'loan')->limit(5)->get();
+            // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'loan')->limit(5)->get();
+
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'loan' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -243,10 +288,15 @@ class zeroMove extends Controller
                 $paystack_id = mt_rand(10000, 99999);
                 $abs_amount = abs($zero_tran->amount);
 
+                if($zero_tran->payment_channel == ''){
+                    $payment_method = 'Paid';
+                } else{
+                    $payment_method = $zero_tran->payment_channel;
+                }
+
                 //======hard coded data ==========
                 $loan_group = 0;
                 $loan_amount = 0;
-                $payment_method = 'Bank';
                 $frequency = 'Monthly';
                 $start_date = date('Y-m-d'); 
                 $app_no = 'ZIMC-'.$zero_tran->user_id;
@@ -273,7 +323,7 @@ class zeroMove extends Controller
 
         public function membership_registration(){
             // $members = DB::table('members_tbl')->select(select::raw())get();
-            $members = DB::select(DB::raw("SELECT * FROM `members_tbl` where membership_no between 19000 and 19700"));
+            $members = DB::select(DB::raw("SELECT * FROM `members_tbl` where membership_no = 0"));
 
             // $getam = array();
             foreach ($members as $member) {
@@ -337,10 +387,7 @@ class zeroMove extends Controller
 
             }
 
-            return response()->json([
-            'status' => true,
-            'message' => 'insertion successful'
-            ]);
+            return response()->json(['status' => true,'message' => 'insertion successful']);
         }
 
         public function membership_registration_fee(){
@@ -361,7 +408,12 @@ class zeroMove extends Controller
 
                 if(DB::table('member_registration')->where('user_id', $zero_tran->user_id)->doesntExist()){
 
-                    $payment_method = 'manual';
+                    if($zero_tran->payment_channel == ''){
+                        $payment_method = 'Paid';
+                    } else{
+                        $payment_method = $zero_tran->payment_channel;
+                    }
+                    
                     if(DB::table('users')->where('id', $zero_tran->user_id)->doesntExist()){
                         continue;
                     }
@@ -378,20 +430,29 @@ class zeroMove extends Controller
 
                     DB::table('users')->where('id', $single_user->id)->update(['member_status' => $m_status, 'user_status' => $m_status]);
                 }
-                 else{
-                    DB::table('users')->where('id', $zero_tran->user_id)->update(['member_status' => 1, 'user_status' => 1]);
-                    DB::table('member_registration')->update(['updated_at' => $date_time]);
-                    DB::table('member_registrations')->update(['updated_at' => $date_time]);
-                    
-                }
                 
             }
             return response()->json(['status' => true, 'message' => 'data inserted successfully']);
         }
 
         public function enable_disable(){
-           $active_user[] = DB::table('members_tbl')->where('status', 'Active')->value('membership_no');
-           return $active_user;
+            $members = DB::select(DB::raw("SELECT * FROM `members_tbl` where 1"));
+
+            foreach ($members as $member) {
+
+                $check = $member->status;
+                if($check == 'Active'){
+                    $active = DB::table('members_tbl')->where('status', 'Active')->value('membership_no');
+                    $member_id = 'ZEROCOOP-' . $active;
+                    DB::table('users')->where('member_id', $member_id)->update(['user_status' => 1, 'member_status' => 1]);
+                } else {
+                    $closed = DB::table('members_tbl')->where('status', 'Closed')->value('membership_no');
+                    $member_id = 'ZEROCOOP-' . $closed;
+                    DB::table('users')->where('member_id', $member_id)->update(['user_status' => 2, 'member_status' => 1]);
+                }
+
+            }
+            return response()->json(['message' => 'updated successfully']);
         }
 
 
@@ -399,7 +460,13 @@ class zeroMove extends Controller
 
 
         private function get_entered_by($user_ids){
-            $poster = DB::table('zero_trans_tbl')->where('user_id', $user_ids)->value('posted_by');    
+            $poster = DB::table('zero_trans_tbl')->where('user_id', $user_ids)->value('posted_by');
+            
+            if($poster == ''){
+                $poster = 'Administrator zerointerest';
+            } else{
+                $poster;
+            }
             $x = explode(' ', $poster);
             $y = $x[0];
             $z = $x[1];
