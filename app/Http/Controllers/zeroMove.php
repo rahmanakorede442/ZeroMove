@@ -13,7 +13,7 @@ class zeroMove extends Controller
         //     ['acct_type', 'monthly savings']
         //     ['posting_date']
         //     ])->get(); 
-        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2020-07-07 00:00:00' and '2021-07-07 00:00:00') order by posting_date asc"));
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2021-07-08 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
 
@@ -436,18 +436,18 @@ class zeroMove extends Controller
         }
 
         public function enable_disable(){
-            $members = DB::select(DB::raw("SELECT * FROM `members_tbl` where 1"));
+            $members = DB::select(DB::raw("SELECT `membership_no`, `status` FROM `members_tbl`"));
 
             foreach ($members as $member) {
 
                 $check = $member->status;
                 if($check == 'Active'){
-                    $active = DB::table('members_tbl')->where('status', 'Active')->value('membership_no');
-                    $member_id = 'ZEROCOOP-' . $active;
+                    $id = $member->membership_no;
+                    $member_id = 'ZEROCOOP-' . $id;
                     DB::table('users')->where('member_id', $member_id)->update(['user_status' => 1, 'member_status' => 1]);
                 } else {
-                    $closed = DB::table('members_tbl')->where('status', 'Closed')->value('membership_no');
-                    $member_id = 'ZEROCOOP-' . $closed;
+                    $id = $member->membership_no;
+                    $member_id = 'ZEROCOOP-' . $id;
                     DB::table('users')->where('member_id', $member_id)->update(['user_status' => 2, 'member_status' => 1]);
                 }
 
