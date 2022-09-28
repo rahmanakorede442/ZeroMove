@@ -13,7 +13,7 @@ class zeroMove extends Controller
         //     ['acct_type', 'monthly savings']
         //     ['posting_date']
         //     ])->get(); 
-        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2017-07-04 00:00:00' and '2018-07-04 00:00:00') order by posting_date asc"));
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2020-07-07 00:00:00' and '2021-07-07 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
 
@@ -87,7 +87,7 @@ class zeroMove extends Controller
         
         // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'target savings')->limit(5)->get();
 
-        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'target savings' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'target savings' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
         $just_date = date('Y-m-d');
@@ -138,7 +138,7 @@ class zeroMove extends Controller
     public function wallet_transactions(){
         // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Wallet')->limit(5)->get();
 
-        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Wallet' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+        $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Wallet' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
 
         $date_time = date('Y-m-d h:i:s');
         $just_date = date('Y-m-d');
@@ -176,7 +176,7 @@ class zeroMove extends Controller
             
             // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'shares Capital')->limit(5)->get();
 
-            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'shares Capital' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'shares Capital' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
 
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
@@ -227,7 +227,7 @@ class zeroMove extends Controller
         public function procurement_repayment(){
             // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Procurement')->limit(5)->get();
 
-            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Procurement' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Procurement' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -280,7 +280,7 @@ class zeroMove extends Controller
 
             // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'loan')->limit(5)->get();
 
-            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'loan' and (posting_date between '2013-12-31 00:00:00' and '2014-01-01 00:00:00') order by posting_date asc"));
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'loan' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
