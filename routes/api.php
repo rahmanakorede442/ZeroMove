@@ -29,4 +29,6 @@ Route::get('membership_registration', [zeroMove::class, 'membership_registration
 Route::get('membership_registration_fee', [zeroMove::class, 'membership_registration_fee']);
 Route::get('enable_disable', [zeroMove::class, 'enable_disable']);
 
+Route::get('sorting_transaction', [zeroMove::class, 'sorting_transaction']);
+Route::post('import_excel', [zeroMove::class, 'import_excel']);
 

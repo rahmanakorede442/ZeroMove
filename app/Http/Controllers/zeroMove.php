@@ -9,12 +9,8 @@ class zeroMove extends Controller
 {
     public function savings_transactions(){
 
-        // $zero_trans = DB::table('zero_trans_tbl')->where([
-        //     ['acct_type', 'monthly savings']
-        //     ['posting_date']
-        //     ])->get(); 
         $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2021-07-08 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
-
+        
         $date_time = date('Y-m-d h:i:s');
 
         foreach ($zero_trans as $zero_tran) {
@@ -28,7 +24,7 @@ class zeroMove extends Controller
                 $payment_method = $zero_tran->payment_channel;
             }
 
-            //get the last inserted_id which is the primary id of savings tbl
+            // get the last inserted_id which is the primary id of savings tbl
             $savings_id = DB::table('savings')->insertGetId(['user_id' => $zero_tran->user_id, 'amount' => abs($zero_tran->amount), 'transaction_month' => $month, 'auto_status'=> 0, 'card_id'=> 0, 'start_date' => $zero_tran->date, 'payment_method' => $payment_method, 'created_at' => $date_time]);
 
             if(((int)$zero_tran->amount > 0) || ($zero_tran->type == 'credit')){
@@ -45,13 +41,13 @@ class zeroMove extends Controller
 
             $entered_by = $this->get_entered_by($zero_tran->user_id);
                 
-            //insert into the savings_transactions table
+            // insert into the savings_transactions table
             $savings_trans_insert = DB::table('savings_transactions')->insertGetId(['savings_id'=> $savings_id, 'user_id' => $zero_tran->user_id,'paystack_id' => 0, 'savings_type'=> 'self', 'savings_category' => $savings_category, 'status' => 'completed', 'amount' => abs($zero_tran->amount), 'date_time' => $zero_tran->date, 'transaction_by' => $entered_by, 'transaction_type' => $zero_tran->type, 'payment_method' => $payment_method, 'created_at' => $date_time ]);
                         
-            //particular user on the savings_balances table
+            // particular user on the savings_balances table
             $savings_bal_tbl = DB::table('savings_balances')->where('user_id', $zero_tran->user_id);
 
-            //check if the user exists
+            // check if the user exists
             if($savings_bal_tbl->doesntExist()){
 
                 DB::table('savings_balances')->insert(['user_id' => $zero_tran->user_id, 'savings_balance'=> $zero_tran->amount, 'created_at' => $date_time]);
@@ -70,18 +66,41 @@ class zeroMove extends Controller
             $last_balance = DB::table('savings_acc_statement')->where('id', $last_id)->value('balance');
             $acc_balance = $last_balance + $zero_tran->amount;
 
-            //insert into savings account statement table
+            // insert into savings account statement table
             $acct_statement = DB::table('savings_acc_statement')->insert(['user_id'=> $zero_tran->user_id, 'description'=> $description, 'channel'=> $payment_method,'value_date' => $zero_tran->date, 'debit'=> $debit, 'credit'=> $credit, 'balance' => $acc_balance]);
         }
-        
+        return response()->json(['message' => 'insertion made successfully','status' => true, 'result'=>$savings_id]);
         if($acct_statement){
             return response()->json(['message' => 'insertion made successfully','status' => true]);
         } else{
             return response()->json(['message' => 'Failed to insert','status' => false]);
         }
     }
+ 
+        public function sorting_transaction(){
 
+        $savings_transactions = DB::select(DB::raw("SELECT `id`,`date_time`, `user_id`,`transaction_type`,`amount`,`payment_method` FROM `savings_transactions` limit 10"));
 
+        return $savings_transactions;
+
+        foreach ($savings_transactions as $savings_trans) {
+
+            if($savings_trans->payment_method == ''){
+                $payment_method = 'Paid';
+            } else{
+                $payment_method = $savings_trans->payment_method;
+            }
+
+            if($savings_trans->transaction_type == 'credit'){
+                $savings_category = 1;
+            } else{
+                $savings_category = 52;
+            }
+            $date_time = date('Y-m-d h:i:s');
+            $transaction_insert = DB::table('transactions')->insert(['user_id' => $savings_trans->user_id, 'amount' => $savings_trans->amount, 'paystack_id' => 0, 'payment_method' => $payment_method, 'entry_date' => $savings_trans->date_time, 'transaction_id'=> $savings_trans->id, 'transaction_category'=> $savings_category, 'transaction_type' => $savings_trans->transaction_type, 'created_at' => $date_time]);
+        }
+        return response()->json(['message' => 'insertion successful','status' => true]);
+    }
 
     public function target_transactions(){
         
@@ -280,7 +299,8 @@ class zeroMove extends Controller
 
             // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'loan')->limit(5)->get();
 
-            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'loan' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'loan' and (posting_date between '2015-10-14 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
+
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -313,7 +333,7 @@ class zeroMove extends Controller
                 //insert into the loan repayment table and get id
                 $insertedId = DB::table('loan_repayment')->insertGetId(['loan_id' => $loan_id, 'user_id' => $zero_tran->user_id, 'repayment_amount' => $abs_amount, 'debit' => '0.00', 'credit' => $abs_amount, 'balance' => 0, 'trans_date' => $zero_tran->date, 'payment_method' => $payment_method, 'paystack_id' => $paystack_id, 'created_at' => $date_time, 'updated_at' => $date_time]);
 
-                //insert into the transactions table
+                // insert into the transactions table
                 $transaction_insert = DB::table('transactions')->insert(['user_id' => $zero_tran->user_id, 'paystack_id' => $paystack_id, 'amount' => $abs_amount, 'entry_date' => $zero_tran->date, 'payment_method' => $payment_method, 'transaction_id' => $insertedId, 'transaction_type' => 'credit', 'transaction_category' => 4, 'status' => 'completed', 'created_at' => $date_time, 'updated_at' => $date_time]);
 
             }
@@ -479,6 +499,147 @@ class zeroMove extends Controller
                return $poster_id = 0;
             } else{
                return $poster_id = $poster_id1;
+            }
+        }
+
+        public function trans_file_upload(){
+            // if ($request->has('letter_of_appointment')) {
+            //     $image2 = $request->file('letter_of_appointment'); //get selected file/image
+
+            //     if($image2->getClientOriginalExtension() != 'jpeg' && $image2->getClientOriginalExtension() != 'png' && $image2->getClientOriginalExtension() != 'jpg' && $image2->getClientOriginalExtension() != 'pdf'){
+            //         return response()->json([
+            //             'status' => false,
+            //             'message' => 'File required must be in pdf, jpg, jpeg or png format!'
+            //         ], 200);
+            //     }
+
+            //     //no files larger than 700kb
+            //     if ($image2->getSize() > 700000){
+            //         //respond not validated, file too big.
+            //         return response()->json([
+            //             'status' => false,
+            //             'message' => 'file size must not be greater than 700kb!'
+            //         ], 200);
+            //     }
+                
+            //     $filename2 = URL::to("/") . '/credentials/' . time() . 'C.' . $image2->getClientOriginalExtension();
+            //     $destinationPath = public_path() . '/credentials'; // upload path
+            //     $image2->move($destinationPath, $filename2); // move to folder path
+            //     $new_image2 = $filename2;
+        }
+
+
+        public function import_excel(Request $request){
+            //return $this->guard()->user();
+            $file = $request->file('uploaded_file');
+    
+            if ($file) {
+                $filename = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension(); //Get extension of uploaded file
+                $tempPath = $file->getRealPath();
+                $fileSize = $file->getSize(); //Get size of uploaded file in bytes
+    
+                //Check for file extension and size
+                $valid_extension = array("csv", "xlsx", "xls"); //Only want csv and excel files
+                $maxFileSize = 2097152; // Uploaded file size limit is 2mb
+                if (in_array(strtolower($extension), $valid_extension)) {
+    
+                    if ($fileSize <= $maxFileSize) {
+                    } 
+                    else {
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Uploaded file size limit is 2mb'
+                        ], 200);
+                    }
+                } 
+                else {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Allowed file csv, xls or xlsx'
+                    ], 200);
+                }
+    
+                //Where uploaded file will be stored on the server 
+                $location = 'credentials'; //Created an "uploads" folder for that
+                // Upload file
+                $file->move($location, $filename);
+                // In case the uploaded file path is to be stored in the database 
+                $filepath = public_path($location . "/" . $filename);
+               
+    
+    
+                //================================================================
+                // Reading file
+                //================================================================
+                $file = fopen($filepath, "r");
+                $importData_arr = array(); // Read through the file and store the contents as an array
+                $i = 0;
+                //Read the contents of the uploaded file 
+                while (($filedata = fgetxls($file, 1000, ",")) !== FALSE) {
+                    $num = count($filedata);
+                    // Skip first row (Remove below comment if you want to skip the first row)
+                    if ($i == 0) {
+                        $i++;
+                        continue;
+                    }
+    
+                    for ($c = 0; $c < $num; $c++) {
+                        $importData_arr[$i][] = $filedata[$c];
+                    }
+                    $i++;
+                }
+    
+                fclose($file); //Close after reading
+    
+                $j = 0;
+    
+               
+                foreach ($importData_arr as $importData) {
+    
+                    $first_name = $importData[1]; 
+                    // $middle_name = $importData[2]; 
+                    // $last_name = $importData[3]; 
+                    // $email = $importData[4]; 
+                    // $member_type = $importData[5]; 
+    
+                    $j++;
+    
+                    //=================================================================
+                    //get each cell data and insert into users and profile table
+                    //=================================================================
+    
+                    // try {
+                    //     DB::beginTransaction();
+                    //     Player::create([
+                    //     'name' => $importData[1],
+                    //     'club' => $importData[2],
+                    //     'email' => $importData[3],
+                    //     'position' => $importData[4],
+                    //     'age' => $importData[5],
+                    //     'salary' => $importData[6]
+                    //     ]);
+                    //     //Send Email
+                    //     $this->sendEmail($email, $name);
+                    //     DB::commit();
+                    // } catch (\Exception $e) {
+                    // //throw $th;
+                    // DB::rollBack();
+                    // }
+                }
+    
+                return response()->json([
+                    'status' => true,
+                    'message' => $j . " records successfully uploaded"
+                ], 200);
+    
+    
+            } else {
+                //no file was uploaded
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No file was uploaded'
+                ], 200);
             }
         }
 
