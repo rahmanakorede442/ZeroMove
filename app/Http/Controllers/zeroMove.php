@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class zeroMove extends Controller
 {
+
+
     public function savings_transactions(){
 
         $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'monthly savings' and (posting_date between '2021-07-08 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
@@ -69,7 +71,6 @@ class zeroMove extends Controller
             // insert into savings account statement table
             $acct_statement = DB::table('savings_acc_statement')->insert(['user_id'=> $zero_tran->user_id, 'description'=> $description, 'channel'=> $payment_method,'value_date' => $zero_tran->date, 'debit'=> $debit, 'credit'=> $credit, 'balance' => $acc_balance]);
         }
-        return response()->json(['message' => 'insertion made successfully','status' => true, 'result'=>$savings_id]);
         if($acct_statement){
             return response()->json(['message' => 'insertion made successfully','status' => true]);
         } else{
@@ -246,7 +247,8 @@ class zeroMove extends Controller
         public function procurement_repayment(){
             // $zero_trans = DB::table('zero_trans_tbl')->where('acct_type', 'Procurement')->limit(5)->get();
 
-            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Procurement' and (posting_date between '2013-12-31 00:00:00' and '2022-09-30 00:00:00') order by posting_date asc"));
+            $zero_trans = DB::select(DB::raw("SELECT * FROM `zero_trans_tbl` where acct_type = 'Procurement' and (posting_date between '2016-09-28 12:36:15' and '2022-09-30 00:00:00') order by posting_date asc"));
+
             $date_time = date('Y-m-d h:i:s');
             $just_date = date('Y-m-d');
 
@@ -455,7 +457,7 @@ class zeroMove extends Controller
             return response()->json(['status' => true, 'message' => 'data inserted successfully']);
         }
 
-        public function enable_disable(){
+        private function enable_disable(){
             $members = DB::select(DB::raw("SELECT `membership_no`, `status` FROM `members_tbl`"));
 
             foreach ($members as $member) {
@@ -479,7 +481,7 @@ class zeroMove extends Controller
 
 
 
-        private function get_entered_by($user_ids){
+        protected function get_entered_by($user_ids){
             $poster = DB::table('zero_trans_tbl')->where('user_id', $user_ids)->value('posted_by');
             
             if($poster == ''){
@@ -502,146 +504,7 @@ class zeroMove extends Controller
             }
         }
 
-        public function trans_file_upload(){
-            // if ($request->has('letter_of_appointment')) {
-            //     $image2 = $request->file('letter_of_appointment'); //get selected file/image
-
-            //     if($image2->getClientOriginalExtension() != 'jpeg' && $image2->getClientOriginalExtension() != 'png' && $image2->getClientOriginalExtension() != 'jpg' && $image2->getClientOriginalExtension() != 'pdf'){
-            //         return response()->json([
-            //             'status' => false,
-            //             'message' => 'File required must be in pdf, jpg, jpeg or png format!'
-            //         ], 200);
-            //     }
-
-            //     //no files larger than 700kb
-            //     if ($image2->getSize() > 700000){
-            //         //respond not validated, file too big.
-            //         return response()->json([
-            //             'status' => false,
-            //             'message' => 'file size must not be greater than 700kb!'
-            //         ], 200);
-            //     }
-                
-            //     $filename2 = URL::to("/") . '/credentials/' . time() . 'C.' . $image2->getClientOriginalExtension();
-            //     $destinationPath = public_path() . '/credentials'; // upload path
-            //     $image2->move($destinationPath, $filename2); // move to folder path
-            //     $new_image2 = $filename2;
-        }
-
-
-        public function import_excel(Request $request){
-            //return $this->guard()->user();
-            $file = $request->file('uploaded_file');
-    
-            if ($file) {
-                $filename = $file->getClientOriginalName();
-                $extension = $file->getClientOriginalExtension(); //Get extension of uploaded file
-                $tempPath = $file->getRealPath();
-                $fileSize = $file->getSize(); //Get size of uploaded file in bytes
-    
-                //Check for file extension and size
-                $valid_extension = array("csv", "xlsx", "xls"); //Only want csv and excel files
-                $maxFileSize = 2097152; // Uploaded file size limit is 2mb
-                if (in_array(strtolower($extension), $valid_extension)) {
-    
-                    if ($fileSize <= $maxFileSize) {
-                    } 
-                    else {
-                        return response()->json([
-                            'status' => false,
-                            'message' => 'Uploaded file size limit is 2mb'
-                        ], 200);
-                    }
-                } 
-                else {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Allowed file csv, xls or xlsx'
-                    ], 200);
-                }
-    
-                //Where uploaded file will be stored on the server 
-                $location = 'credentials'; //Created an "uploads" folder for that
-                // Upload file
-                $file->move($location, $filename);
-                // In case the uploaded file path is to be stored in the database 
-                $filepath = public_path($location . "/" . $filename);
-               
-    
-    
-                //================================================================
-                // Reading file
-                //================================================================
-                $file = fopen($filepath, "r");
-                $importData_arr = array(); // Read through the file and store the contents as an array
-                $i = 0;
-                //Read the contents of the uploaded file 
-                while (($filedata = fgetxls($file, 1000, ",")) !== FALSE) {
-                    $num = count($filedata);
-                    // Skip first row (Remove below comment if you want to skip the first row)
-                    if ($i == 0) {
-                        $i++;
-                        continue;
-                    }
-    
-                    for ($c = 0; $c < $num; $c++) {
-                        $importData_arr[$i][] = $filedata[$c];
-                    }
-                    $i++;
-                }
-    
-                fclose($file); //Close after reading
-    
-                $j = 0;
-    
-               
-                foreach ($importData_arr as $importData) {
-    
-                    $first_name = $importData[1]; 
-                    // $middle_name = $importData[2]; 
-                    // $last_name = $importData[3]; 
-                    // $email = $importData[4]; 
-                    // $member_type = $importData[5]; 
-    
-                    $j++;
-    
-                    //=================================================================
-                    //get each cell data and insert into users and profile table
-                    //=================================================================
-    
-                    // try {
-                    //     DB::beginTransaction();
-                    //     Player::create([
-                    //     'name' => $importData[1],
-                    //     'club' => $importData[2],
-                    //     'email' => $importData[3],
-                    //     'position' => $importData[4],
-                    //     'age' => $importData[5],
-                    //     'salary' => $importData[6]
-                    //     ]);
-                    //     //Send Email
-                    //     $this->sendEmail($email, $name);
-                    //     DB::commit();
-                    // } catch (\Exception $e) {
-                    // //throw $th;
-                    // DB::rollBack();
-                    // }
-                }
-    
-                return response()->json([
-                    'status' => true,
-                    'message' => $j . " records successfully uploaded"
-                ], 200);
-    
-    
-            } else {
-                //no file was uploaded
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No file was uploaded'
-                ], 200);
-            }
-        }
+      
 
 
 

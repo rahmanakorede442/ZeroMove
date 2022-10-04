@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\zeroMove;
+use App\Http\Controllers\zeroExcel;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+
+//===============================================================================
 Route::get('savings_transactions', [zeroMove::class, 'savings_transactions']);
 Route::get('target_transactions', [zeroMove::class, 'target_transactions']);
 Route::get('wallet_transactions', [zeroMove::class, 'wallet_transactions']);
@@ -28,7 +31,13 @@ Route::get('loan_repayment', [zeroMove::class, 'loan_repayment']);
 Route::get('membership_registration', [zeroMove::class, 'membership_registration']);
 Route::get('membership_registration_fee', [zeroMove::class, 'membership_registration_fee']);
 Route::get('enable_disable', [zeroMove::class, 'enable_disable']);
-
 Route::get('sorting_transaction', [zeroMove::class, 'sorting_transaction']);
-Route::post('import_excel', [zeroMove::class, 'import_excel']);
+//==================================================================================
+
+
+//============================================================
+Route::post('import_excel', [zeroExcel::class, 'import_excel']);
+Route::post('zero_uni_trans', [zeroExcel::class, 'zero_uni_trans']);
+
+//============================================================
 
